@@ -339,6 +339,47 @@
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        .comparison-container {
+            display: flex;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+
+        .image-box {
+            flex: 1;
+            min-width: 250px;
+            text-align: center;
+        }
+
+        .image-box img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .stats-box {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .savings {
+            color: var(--success);
+        }
+
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -361,6 +402,10 @@
 
             .tools-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .comparison-container {
+                flex-direction: column;
             }
         }
     </style>
@@ -398,6 +443,17 @@
                 </div>
                 <div class="tool-body">
                     <p>Convert between JPG, PNG, BMP and other image formats</p>
+                    <button class="btn btn-block">Use Tool</button>
+                </div>
+            </div>
+
+            <div class="tool-card" data-tool="compress-image">
+                <div class="tool-header">
+                    <i class="fas fa-compress-arrows-alt"></i>
+                    <h3>Image Compressor</h3>
+                </div>
+                <div class="tool-body">
+                    <p>Compress JPG and PNG images to reduce file size</p>
                     <button class="btn btn-block">Use Tool</button>
                 </div>
             </div>
@@ -476,6 +532,80 @@
                 <h4>Conversion Complete!</h4>
                 <div id="image-preview"></div>
                 <a href="#" class="btn download-btn" id="image-download" download>Download Converted Image</a>
+            </div>
+        </div>
+
+        <!-- Image Compressor Tool -->
+        <div class="tool-container" id="compress-image-tool">
+            <button class="btn back-btn" id="compress-image-back"><i class="fas fa-arrow-left"></i> Back to Tools</button>
+            <h2>Image Compressor</h2>
+            <p>Compress JPG and PNG images to reduce file size while maintaining quality</p>
+            
+            <div class="drop-zone" id="compress-image-drop">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drag and drop your image here or</p>
+                <input type="file" id="compress-image-input" accept="image/jpeg,image/png" hidden>
+                <button class="btn" id="compress-image-browse">Browse Files</button>
+            </div>
+            
+            <div class="file-info" id="compress-image-info">
+                <p><strong>File name:</strong> <span id="compress-image-filename"></span></p>
+                <p><strong>File size:</strong> <span id="compress-image-size"></span></p>
+                <p><strong>Dimensions:</strong> <span id="compress-image-dimensions"></span></p>
+            </div>
+            
+            <div class="conversion-options">
+                <label for="compress-quality">Compression Level: <span id="compress-quality-value">70%</span></label>
+                <input type="range" id="compress-quality" min="10" max="100" value="70">
+                
+                <label for="max-width">Resize (optional, max width):</label>
+                <input type="number" id="max-width" placeholder="Original size" min="100" max="4000">
+            </div>
+            
+            <button class="btn btn-block" id="compress-image-button">Compress Image</button>
+            
+            <div class="spinner" id="compress-image-spinner"></div>
+            
+            <div class="result-area" id="compress-image-result">
+                <h4>Compression Complete!</h4>
+                
+                <div class="comparison-container">
+                    <div class="image-box">
+                        <h5>Original Image</h5>
+                        <div id="original-image-preview"></div>
+                        <div class="stats-box">
+                            <div class="stat">
+                                <div class="stat-label">Size</div>
+                                <div class="stat-value" id="original-size">0 KB</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-label">Dimensions</div>
+                                <div class="stat-value" id="original-dimensions">0×0</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="image-box">
+                        <h5>Compressed Image</h5>
+                        <div id="compressed-image-preview"></div>
+                        <div class="stats-box">
+                            <div class="stat">
+                                <div class="stat-label">Size</div>
+                                <div class="stat-value" id="compressed-size">0 KB</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-label">Dimensions</div>
+                                <div class="stat-value" id="compressed-dimensions">0×0</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-label">Saved</div>
+                                <div class="stat-value savings" id="size-savings">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <a href="#" class="btn download-btn" id="compress-image-download" download>Download Compressed Image</a>
             </div>
         </div>
 
@@ -761,6 +891,170 @@
             }, 1000);
         });
 
+        // Image Compressor Functionality
+        const compressImageDrop = document.getElementById('compress-image-drop');
+        const compressImageInput = document.getElementById('compress-image-input');
+        const compressImageBrowse = document.getElementById('compress-image-browse');
+        const compressImageInfo = document.getElementById('compress-image-info');
+        const compressImageButton = document.getElementById('compress-image-button');
+        const compressImageSpinner = document.getElementById('compress-image-spinner');
+        const compressImageResult = document.getElementById('compress-image-result');
+        const compressImageDownload = document.getElementById('compress-image-download');
+        const compressQuality = document.getElementById('compress-quality');
+        const compressQualityValue = document.getElementById('compress-quality-value');
+        const maxWidthInput = document.getElementById('max-width');
+        const originalImagePreview = document.getElementById('original-image-preview');
+        const compressedImagePreview = document.getElementById('compressed-image-preview');
+        const originalSizeElement = document.getElementById('original-size');
+        const compressedSizeElement = document.getElementById('compressed-size');
+        const originalDimensionsElement = document.getElementById('original-dimensions');
+        const compressedDimensionsElement = document.getElementById('compressed-dimensions');
+        const sizeSavingsElement = document.getElementById('size-savings');
+
+        // Update quality label
+        compressQuality.addEventListener('input', () => {
+            compressQualityValue.textContent = `${compressQuality.value}%`;
+        });
+
+        // Set up compress image drop zone
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            compressImageDrop.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            compressImageDrop.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            compressImageDrop.addEventListener(eventName, unhighlight, false);
+        });
+
+        compressImageDrop.addEventListener('drop', handleCompressDrop, false);
+        
+        function handleCompressDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleCompressImageFiles(files);
+        }
+
+        compressImageBrowse.addEventListener('click', () => {
+            compressImageInput.click();
+        });
+
+        compressImageInput.addEventListener('change', () => {
+            handleCompressImageFiles(compressImageInput.files);
+        });
+
+        function handleCompressImageFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                if (isCompressibleImageFile(file)) {
+                    displayCompressImageInfo(file);
+                    compressImageButton.disabled = false;
+                } else {
+                    alert('Please select a valid JPG or PNG image file');
+                }
+            }
+        }
+
+        function isCompressibleImageFile(file) {
+            return file.type === 'image/jpeg' || file.type === 'image/png';
+        }
+
+        function displayCompressImageInfo(file) {
+            const fileName = file.name;
+            const fileSize = formatFileSize(file.size);
+            
+            document.getElementById('compress-image-filename').textContent = fileName;
+            document.getElementById('compress-image-size').textContent = fileSize;
+            
+            // Get image dimensions
+            const img = new Image();
+            const objectURL = URL.createObjectURL(file);
+            img.onload = function() {
+                document.getElementById('compress-image-dimensions').textContent = `${this.width} × ${this.height} pixels`;
+                URL.revokeObjectURL(objectURL);
+            };
+            img.src = objectURL;
+            
+            compressImageInfo.style.display = 'block';
+        }
+
+        compressImageButton.addEventListener('click', () => {
+            if (!compressImageInput.files.length) return;
+            
+            compressImageSpinner.style.display = 'block';
+            compressImageButton.disabled = true;
+            
+            setTimeout(() => {
+                const file = compressImageInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // Store original dimensions and size
+                        const originalWidth = img.width;
+                        const originalHeight = img.height;
+                        const originalSize = file.size;
+                        
+                        // Calculate new dimensions if max width is specified
+                        let newWidth = originalWidth;
+                        let newHeight = originalHeight;
+                        
+                        if (maxWidthInput.value && maxWidthInput.value < originalWidth) {
+                            newWidth = parseInt(maxWidthInput.value);
+                            newHeight = Math.round((originalHeight * newWidth) / originalWidth);
+                        }
+                        
+                        // Create canvas for compression
+                        const canvas = document.createElement('canvas');
+                        canvas.width = newWidth;
+                        canvas.height = newHeight;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                        
+                        // Get quality setting
+                        const quality = compressQuality.value / 100;
+                        
+                        // Get file type
+                        const fileType = file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+                        
+                        canvas.toBlob(function(blob) {
+                            const url = URL.createObjectURL(blob);
+                            const compressedSize = blob.size;
+                            const savings = Math.round((1 - (compressedSize / originalSize)) * 100);
+                            
+                            // Display original image
+                            const originalURL = URL.createObjectURL(file);
+                            originalImagePreview.innerHTML = `<img src="${originalURL}" alt="Original image" style="max-width: 100%; border-radius: 8px;">`;
+                            
+                            // Display compressed image
+                            compressedImagePreview.innerHTML = `<img src="${url}" alt="Compressed image" style="max-width: 100%; border-radius: 8px;">`;
+                            
+                            // Update stats
+                            originalSizeElement.textContent = formatFileSize(originalSize);
+                            compressedSizeElement.textContent = formatFileSize(compressedSize);
+                            originalDimensionsElement.textContent = `${originalWidth}×${originalHeight}`;
+                            compressedDimensionsElement.textContent = `${newWidth}×${newHeight}`;
+                            sizeSavingsElement.textContent = `${savings}%`;
+                            
+                            // Set up download
+                            compressImageDownload.href = url;
+                            compressImageDownload.download = `compressed-${file.name}`;
+                            
+                            compressImageSpinner.style.display = 'none';
+                            compressImageResult.style.display = 'block';
+                        }, fileType, quality);
+                    };
+                    img.src = e.target.result;
+                };
+                
+                reader.readAsDataURL(file);
+            }, 1000);
+        });
+
         // PDF Tools Functionality
         const pdfDrop = document.getElementById('pdf-drop');
         const pdfInput = document.getElementById('pdf-input');
@@ -1012,6 +1306,7 @@
 
         // Initialize page
         document.getElementById('image-info').style.display = 'none';
+        document.getElementById('compress-image-info').style.display = 'none';
         document.getElementById('pdf-info').style.display = 'none';
     </script>
 </body>
